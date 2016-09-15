@@ -4,7 +4,7 @@ import sys
 from sklearn.linear_model import LogisticRegression
 import numpy as np
 from sklearn.cross_validation import cross_val_score
-from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.pipeline import make_pipeline, make_union
 from sklearn.ensemble import GradientBoostingClassifier
 
@@ -63,13 +63,15 @@ class Densifier:
     def transform(self, X):
         return X.toarray()
 
+def count_vectorizer_preprocessor(x):
+    return ' '.join(x[1]['app_id'])
 
 def build_prediction():
     p_age = make_pipeline(
         make_union(
             OneHotTransformer(lambda x: x[1]['phone_brand'].lower()),
             OneHotTransformer(lambda x: x[1]['device_model'].lower()),
-            CountVectorizer(preprocessor=lambda x: ' '.join(x[1]['app_id']))
+            TfidfVectorizer(preprocessor=count_vectorizer_preprocessor)
         ),
         LogisticRegression()
     )
@@ -78,16 +80,16 @@ def build_prediction():
     x_test = [(x, y) for x, y in PERSONS_TESTS.items()]
     y_train_age = [y.get('group') for y in PERSONS.values()]
 
-    print "fit age predictor"
+    print("fit age predictor")
     p_age.fit(x_train, y_train_age)
-    print "predicting age"
+    print("predicting age")
     classes = p_age.classes_
     age_prediction = p_age.predict_proba(x_test)
     return classes, age_prediction
 
 
 def load_gender_age_train():
-    print "loading gender age train"
+    print("loading gender age train")
     with open('gender_age_train.csv') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
@@ -98,7 +100,7 @@ def load_gender_age_train():
 
 
 def load_gender_age_test():
-    print "loading gender age test"
+    print("loading gender age test")
     with open('gender_age_test.csv') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
@@ -108,7 +110,7 @@ def load_gender_age_test():
 
 
 def load_phone_brand_device_model():
-    print "loading phone brand device model"
+    print("loading phone brand device model")
     with open('phone_brand_device_model.csv') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
@@ -127,7 +129,7 @@ def load_phone_brand_device_model():
 
 
 def load_app_events():
-    print "loading app events"
+    print("loading app events")
     with open('app_events.csv') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
@@ -139,7 +141,7 @@ def load_app_events():
 
 
 def load_events():
-    print "loading events"
+    print("loading events")
 
     def update_app_id(person, apps):
         if person.get('app_id') == ['emptyapp']:
@@ -164,7 +166,7 @@ def load_events():
 
 
 def create_csv(titles, data):
-    with open('submit.csv', 'wb') as csvfile:
+    with open('submit.csv', 'w') as csvfile:
         spamwriter = csv.writer(csvfile)
         row = ['device_id'] + [cat for cat in titles]
         spamwriter.writerow(row)
